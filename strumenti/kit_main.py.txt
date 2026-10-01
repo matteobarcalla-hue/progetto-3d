@@ -1,0 +1,98 @@
+# --------------------------------------------------------------- avvio
+def animali_statici(nascondi):
+    n_ = 0
+    for ob in bpy.data.objects:
+        if ob.type == 'MESH' and ob.name.split('.')[0] == 'Animali':
+            ob.hide_viewport = nascondi; ob.hide_render = nascondi
+            try: ob.hide_set(nascondi)
+            except Exception: pass
+            n_ += 1
+    return n_
+
+def main():
+    LOG.clear(); modello(); bpy.context.view_layer.update(); pulisci()
+    cc, ca, cn, cp, cl = (collezione(k) for k in KIT)
+    migliora_materiali()
+    mondo(); sole(cl); qualita_ombre()
+    f = 1; prima = None
+    for r in DATI['riprese'] + [DATI['sentiero']] + DATI.get('riprese_nuove', []):
+        cam, f1 = ripresa(r, f, cc, cp); prima = prima or cam; f = f1 + 1
+    ftot = f - 1; SC.camera = prima
+    log('Camere: %d, %d fotogrammi (%.0f s)' % (len(DATI['riprese']) + 1 + len(DATI.get('riprese_nuove', [])), ftot, ftot / FPS))
+    rnd = random.Random(11)
+    n_p = 0
+    if ABITANTI:
+        vesti = ['npc_veste_%d' % i for i in range(8)]; brache = ['npc_brache_%d' % i for i in range(3)]
+        pelli = ['npc_pelle_%d' % i for i in range(3)]; capelli = ['npc_capelli_%d' % i for i in range(4)]
+        for nomi, cols in ((vesti, ((0.55, 0.2, 0.15), (0.2, 0.3, 0.55), (0.35, 0.45, 0.2), (0.7, 0.55, 0.25), (0.45, 0.35, 0.3), (0.62, 0.6, 0.55), (0.3, 0.22, 0.4), (0.25, 0.4, 0.42))),
+                           (brache, ((0.25, 0.2, 0.15), (0.3, 0.3, 0.32), (0.35, 0.28, 0.2))), (pelli, ((0.86, 0.66, 0.52), (0.72, 0.52, 0.38), (0.55, 0.38, 0.26))),
+                           (capelli, ((0.12, 0.08, 0.05), (0.35, 0.22, 0.1), (0.6, 0.5, 0.35), (0.3, 0.3, 0.3)))):
+            for nm, c_ in zip(nomi, cols):
+                materiale(nm, c_)
+        materiale('npc_paglia', (0.85, 0.72, 0.38)); materiale('npc_panno', (0.3, 0.12, 0.1)); materiale('npc_divisa', (0.6, 0.12, 0.12))
+        for ri, rt in enumerate(DATI['percorsi']):
+            pts = [punto((x, z, 0.0, 'w')) for x, z in rt['punti']]
+            cur = curva('Percorso_%02d' % ri, pts, cp, chiusa=True); L = lunghezza(pts)
+            for k in range(rt['persone']):
+                i = n_p; v = (1.05 + 0.1 * (i % 4)) * VELOCITA_PERSONE
+                gonna = (i % 5) in (1, 3); cap = 'npc_paglia' if i % 5 == 0 else ('npc_panno' if i % 5 == 2 else None)
+                chiave = 'persona' + ('_gonna' if gonna else '') + ('_cappello' if cap else '')
+                mappa = {'VESTE': vesti[i % 8], 'BRACHE': brache[i % 3], 'PELLE': pelli[i % 3], 'CAPELLI': capelli[i % 4], 'CAPPELLO': cap or 'npc_paglia'}
+                root, obs = rig('Persona_%02d' % i, chiave, mappa, ca)
+                anima_persona(root, obs, v, i * 1.3)
+                cammina(root, cur, L, v, (k / rt['persone']) + 0.37 * ri % 1.0, ftot); n_p += 1
+        for gi, g in enumerate(DATI['guardie']):
+            pts = [punto(p) for p in g]; cur = curva('Ronda_%d' % gi, pts, cp, chiusa=True)
+            root, obs = rig('Guardia_%d' % gi, 'guardia', {'VESTE': 'npc_divisa', 'BRACHE': brache[1], 'PELLE': pelli[gi % 3], 'CAPELLI': capelli[0]}, ca)
+            anima_persona(root, obs, 0.9 * VELOCITA_PERSONE, gi * 2.0, guardia=True)
+            cammina(root, cur, lunghezza(pts), 0.9 * VELOCITA_PERSONE, gi * 0.4, ftot); n_p += 1
+        log('Persone: %d su %d percorsi + ronde sulle mura' % (n_p, len(DATI['percorsi'])))
+    n_a = 0; soste = 0
+    if ANIMALI:
+        nascosti = animali_statici(True)
+        for i, a in enumerate(DATI['animali']):
+            sp = a['sp']; nome = 'Animale_%03d_%s' % (i, sp); fase = i * 0.77
+            root, obs = rig(nome, a['m'], {'CORPO': a['c'], 'ZAMPE': a['c2']}, cn)
+            if sp in ANDATURA: vel = anima_quadrupede(root, obs, sp, fase)
+            elif sp == 'chicken': vel = anima_gallina(root, obs, fase)
+            elif sp in ('duck', 'swan'): vel = anima_acqua(root, obs, fase)
+            else: vel = anima_gabbiano(root, obs, fase, a.get('vola', False))
+            fisso = a.get('ass', False)
+            pts = [punto((x, z, a['y'], 'a')) if fisso else punto((x, z, 0.0, 'w')) for x, z in a['anello']]
+            cur = curva(nome + '_giro', pts, cp, chiusa=True); L = lunghezza(pts)
+            if sp in ('duck', 'swan') or a.get('vola'):
+                cammina(root, cur, L, vel, (i * 0.137) % 1.0, ftot)
+            elif sp == 'dog':
+                pascolo(root, cur, L, vel, (i * 0.137) % 1.0, ftot, rnd, muovi=(3.0, 8.0), ferma=(2.0, 6.0)); soste += 1
+            elif sp in ('chicken', 'seagull'):
+                pascolo(root, cur, L, vel, (i * 0.137) % 1.0, ftot, rnd, muovi=(0.8, 2.5), ferma=(1.0, 4.0)); soste += 1
+            else:
+                pascolo(root, cur, L, vel, (i * 0.137) % 1.0, ftot, rnd); soste += 1
+            n_a += 1
+        log('Animali: %d articolati, tutti in movimento (%d alternano cammino e soste per brucare/beccare); %d oggetti di animali fermi dell\'OBJ nascosti' % (n_a, soste, nascosti))
+    else:
+        animali_statici(False)
+        log('Animali: quelli fermi dell\'OBJ restano visibili (ANIMALI = False)')
+    if UCCELLI:
+        cx, cz = DATI['centro_fortezza']
+        for i in range(6):
+            root, obs = rig('Uccello_%d' % i, 'seagull_vola', {}, ca)
+            anima_gabbiano(root, obs, i * 1.1, True)
+            R = 60 + 10 * i; h = 58 + 4 * (i % 3)
+            pts = [B(cx + R * math.cos(t), h + 4 * math.sin(3 * t), cz + R * math.sin(t)) for t in [k * 2 * math.pi / 12 for k in range(12)]]
+            cammina(root, curva('Uccello_%d_volo' % i, pts, cp, chiusa=True), 2 * math.pi * R, 9.0, i / 6.0, ftot)
+    if ONDE:
+        onde()
+    rendering(ftot); riquadri(); preferenze(); vista_schermo()
+    SC.frame_set(1)
+    log('Kit di ripresa %s pronto.' % VERSIONE_KIT)
+    try: bpy.context.window_manager.clipboard = '\n'.join(LOG)
+    except Exception: pass
+
+try:
+    main()
+except Exception:
+    log('ERRORE:\n' + traceback.format_exc())
+    try: bpy.context.window_manager.clipboard = '\n'.join(LOG)
+    except Exception: pass
+    raise

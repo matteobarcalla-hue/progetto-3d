@@ -1,0 +1,39 @@
+# 2) grafo dei contatti -> componenti collegate al suolo; poi compenetrazioni solo per le altre
+def ground_set(E):
+    rows = [a for a, b in E] + [c for c in range(NC) if supp[c]]
+    cols = [b for a, b in E] + [NC] * int(supp.sum())
+    A = sp.coo_matrix((np.ones(len(rows)), (rows, cols)), shape=(NC + 1, NC + 1))
+    k, lab = cg.connected_components(A, directed=False)
+    return lab
+cache = {}
+def cb(c):
+    if c not in cache:
+        vs = cverts[c]; rm = {v: i for i, v in enumerate(vs)}
+        cache[c] = BVHTree.FromPolygons([tuple(V[v]) for v in vs], [[rm[v] for v in polys[k]] for k in cpolys[c]], all_triangles=False)
+    return cache[c]
+tested = set()
+for it in range(6):
+    lab = ground_set(E); ground = lab[NC]
+    cand = [c for c in range(NC) if lab[c] != ground]
+    added = 0
+    for c in cand:
+        ov = np.where((hi[:, 0] >= lo[c, 0]) & (lo[:, 0] <= hi[c, 0]) & (hi[:, 1] >= lo[c, 1]) & (lo[:, 1] <= hi[c, 1]) & (hi[:, 2] >= lo[c, 2]) & (lo[:, 2] <= hi[c, 2]))[0]
+        for d in ov:
+            if d == c or supp[d] or lab[d] == lab[c]: continue
+            key = (min(c, d), max(c, d))
+            if key in tested: continue
+            tested.add(key)
+            if cb(c).overlap(cb(d)):
+                E.add(key); added += 1
+    print('iterazione', it, 'candidati', len(cand), 'nuovi archi', added, round(time.time() - t0, 1), flush=True)
+    if not added: break
+lab = ground_set(E); ground = lab[NC]
+flo = [c for c in range(NC) if lab[c] != ground]
+groups = collections.defaultdict(list)
+for c in flo: groups[lab[c]].append(c)
+out = []
+for g, cs in groups.items():
+    l = lo[cs].min(0); h = hi[cs].max(0)
+    obs = collections.Counter(cobj[c] for c in cs)
+    nf = sum(len(cpolys[c]) for c in cs)
+    out.append(dict(oggetti=dict(obs), facce=nf, centro=[round(float(v), 2) for v in (l + h) / 2], y_min=round(float(l[1]), 2), dim=[round(float(v), 2) for v in h - l]))

@@ -24,6 +24,9 @@ ANIMALI = True                # 145 animali articolati, tutti in movimento; Fals
 UCCELLI = True
 ONDE = True
 TEXTURE = True                # texture procedurali leggere su pietra, intonaco, tetti, legno, terreno, fogliame
+VELOCITA_PERSONE = 1.0        # 1.0 = passo normale (1,05-1,35 m/s); 1.5 = piu' veloci del 50%; 2.0 = il doppio
+VELOCITA_ANIMALI = 1.0        # come sopra per gli animali; le zampe si adeguano al passo
+SOSTE_ANIMALI = 1.0           # durata delle soste per brucare o beccare: 0.5 = la meta', 1.0 = come prima
 
 # --- registrazione a schermo in modalita' cammina
 MODALITA_SCHERMO = True       # vista in Rendered pulita in tutte le finestre 3D
@@ -394,6 +397,7 @@ def cammina(root, cur, L, vel, fase, ftot):
 def pascolo(root, cur, L, vel, fase, ftot, rnd, muovi=(4.0, 9.0), ferma=(3.0, 9.0)):
     """tratti di cammino alternati a soste: durante le soste le zampe si fermano (proprietà 'passo') e l'animale bruca o si guarda intorno"""
     c = _percorso(root, cur)
+    ferma = (max(0.2, ferma[0] * SOSTE_ANIMALI), max(0.3, ferma[1] * SOSTE_ANIMALI))
     f = -rnd.uniform(0, 200); pos = fase; pts = [(f, pos)]; pk = []
     fermo = rnd.random() < 0.5; inizio = 0.0 if fermo else 1.0
     while f < ftot + 50:
@@ -417,7 +421,7 @@ def _w(v, l, A):
     return 2 * math.pi * v / (FPS * 4 * l * math.sin(A))
 
 def anima_quadrupede(root, obs, sp, fase):
-    v, l, A, bruca = ANDATURA[sp]
+    v, l, A, bruca = ANDATURA[sp]; v *= VELOCITA_ANIMALI
     ph = 'frame*%.4f+%.3f' % (_w(v, l, A), fase)
     c = obs['corpo']; z0 = c.location.z
     drv(c, 2, '%.3f+p*0.018*abs(sin(%s))' % (z0, ph), prop='location', passo=root)
@@ -438,14 +442,15 @@ def anima_quadrupede(root, obs, sp, fase):
     return v
 
 def anima_gallina(root, obs, fase):
-    ph = 'frame*%.4f+%.3f' % (_w(0.35, 0.2, 0.5), fase)
+    vg = 0.35 * VELOCITA_ANIMALI
+    ph = 'frame*%.4f+%.3f' % (_w(vg, 0.2, 0.5), fase)
     c = obs['corpo']
     drv(c, 2, '%.3f+p*0.012*abs(sin(%s))' % (c.location.z, ph), prop='location', passo=root)
     drv(obs['collo'], 0, 'p*0.18*sin(2*(%s))-(1-p)*1.0*max(0,sin(frame*0.22+%.3f)-0.2)' % (ph, fase), passo=root)
     drv(obs['collo'], 2, '(1-p)*0.4*sin(frame*0.05+%.3f)' % fase, passo=root)
     for s, o in (('sx', 0.0), ('dx', math.pi)):
         drv(obs['zampa_' + s], 0, 'p*0.5*sin(%s+%.3f)' % (ph, o), passo=root)
-    return 0.35
+    return vg
 
 def anima_acqua(root, obs, fase):
     c = obs['corpo']
@@ -453,7 +458,7 @@ def anima_acqua(root, obs, fase):
     drv(c, 1, '0.03*sin(frame*0.07+%.3f)' % fase)
     drv(obs['collo'], 2, '0.35*sin(frame*0.017+%.3f)' % fase)
     drv(obs['collo'], 0, '-0.9*max(0,sin(frame*0.012+%.3f)-0.7)' % (fase * 1.9))
-    return 0.22
+    return 0.22 * VELOCITA_ANIMALI
 
 def anima_gabbiano(root, obs, fase, vola):
     c = obs['corpo']
@@ -462,11 +467,12 @@ def anima_gabbiano(root, obs, fase, vola):
         drv(obs['ala_dx'], 1, '-0.55*sin(frame*0.32+%.3f)' % fase)
         drv(c, 2, '%.3f+0.08*sin(frame*0.32+%.3f)' % (c.location.z, fase + 1.2), prop='location')
         return 9.0
-    ph = 'frame*%.4f+%.3f' % (_w(0.4, 0.11, 0.5), fase)
+    vg = 0.4 * VELOCITA_ANIMALI
+    ph = 'frame*%.4f+%.3f' % (_w(vg, 0.11, 0.5), fase)
     drv(obs['collo'], 2, '0.5*sin(frame*0.03+%.3f)' % fase)
     for s, o in (('sx', 0.0), ('dx', math.pi)):
         drv(obs['zampa_' + s], 0, 'p*0.5*sin(%s+%.3f)' % (ph, o), passo=root)
-    return 0.4
+    return vg
 
 def anima_persona(root, obs, v, fase, guardia=False):
     A = 0.42; ph = 'frame*%.4f+%.3f' % (_w(v, 0.9, A), fase)
@@ -636,7 +642,7 @@ def main():
             pts = [punto((x, z, 0.0, 'w')) for x, z in rt['punti']]
             cur = curva('Percorso_%02d' % ri, pts, cp, chiusa=True); L = lunghezza(pts)
             for k in range(rt['persone']):
-                i = n_p; v = 1.05 + 0.1 * (i % 4)
+                i = n_p; v = (1.05 + 0.1 * (i % 4)) * VELOCITA_PERSONE
                 gonna = (i % 5) in (1, 3); cap = 'npc_paglia' if i % 5 == 0 else ('npc_panno' if i % 5 == 2 else None)
                 chiave = 'persona' + ('_gonna' if gonna else '') + ('_cappello' if cap else '')
                 mappa = {'VESTE': vesti[i % 8], 'BRACHE': brache[i % 3], 'PELLE': pelli[i % 3], 'CAPELLI': capelli[i % 4], 'CAPPELLO': cap or 'npc_paglia'}
@@ -646,8 +652,8 @@ def main():
         for gi, g in enumerate(DATI['guardie']):
             pts = [punto(p) for p in g]; cur = curva('Ronda_%d' % gi, pts, cp, chiusa=True)
             root, obs = rig('Guardia_%d' % gi, 'guardia', {'VESTE': 'npc_divisa', 'BRACHE': brache[1], 'PELLE': pelli[gi % 3], 'CAPELLI': capelli[0]}, ca)
-            anima_persona(root, obs, 0.9, gi * 2.0, guardia=True)
-            cammina(root, cur, lunghezza(pts), 0.9, gi * 0.4, ftot); n_p += 1
+            anima_persona(root, obs, 0.9 * VELOCITA_PERSONE, gi * 2.0, guardia=True)
+            cammina(root, cur, lunghezza(pts), 0.9 * VELOCITA_PERSONE, gi * 0.4, ftot); n_p += 1
         log('Persone: %d su %d percorsi + ronde sulle mura' % (n_p, len(DATI['percorsi'])))
     n_a = 0; soste = 0
     if ANIMALI:

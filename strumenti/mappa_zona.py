@@ -11,6 +11,7 @@ PAL = {'path_dirt': (200, 150, 60), 'street_stone': (220, 60, 60), 'piazza_stone
 def mappa_zona(m, x0, x1, z0, z1, path, px=4, oggetti=(), segni=(), testo=True):
     i0 = int(np.floor(x0 / 0.9 - m.I0)); i1 = int(np.ceil(x1 / 0.9 - m.I0))
     j0 = int(np.floor((z0 - 0.5) / 0.9 - m.J0)); j1 = int(np.ceil((z1 - 0.5) / 0.9 - m.J0))
+    i0 = max(i0, 0); j0 = max(j0, 0); i1 = min(i1, m.H.shape[0] - 2); j1 = min(j1, m.H.shape[1] - 2)
     H = m.H[i0:i1 + 1, j0:j1 + 1]
     N = np.array(m.mats + ['<buco>'])[m.M[i0:i1, j0:j1]]
     col = np.zeros(N.shape + (3,))

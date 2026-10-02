@@ -1,0 +1,32 @@
+# =====================================================================
+#  KIT DI RIPRESA v5 - Mappa del regno (castello_mappa_estesa)
+#  Blender 5.0.x - Scripting > apri questo file > Esegui (Alt+P)
+#  Sostituisce le versioni precedenti: e' un file completo, non va aggiunto.
+# =====================================================================
+PERCORSO_OBJ = r""            # vuoto se il modello e' gia' importato
+FORMATO = "16:9"              # "16:9" oppure "9:16"
+FPS = 25
+QUALITA = "prova"             # "prova" = Eevee ; "finale" = Cycles
+# --- luce e cielo (il sole e' fermo: niente ombre che si muovono)
+ORA_DEL_SOLE = 15.0           # 7 = mattino basso ... 12 = mezzogiorno ... 18 = sera
+COLORE_CIELO_ALTO = (0.25, 0.55, 0.95)
+COLORE_CIELO_ORIZZONTE = (0.70, 0.85, 1.00)
+LUCE_CIELO = 0.6              # intensita' della luce diffusa del cielo
+ESPOSIZIONE = -0.6            # 0 = come la v3 (immagine piu' chiara e slavata)
+CONTRASTO = "AgX - Punchy"    # "AgX - Base Contrast", "AgX - Medium High Contrast", "AgX - Punchy" ...
+OMBRE_ALTA_QUALITA = False     # True = niente disturbo a scacchiera (piu' pesante); False = piu' fluido
+NEBBIA = False                # True = foschia volumetrica (piu' pesante; nella prova senza GPU dava un fotogramma nero)
+# --- vita e materiali
+ABITANTI = True               # 44 persone articolate su 24 percorsi (con 2 guardie sulle mura)
+ANIMALI = True                # 145 animali articolati, tutti in movimento; False = restano quelli fermi dell'OBJ
+UCCELLI = True
+ONDE = False
+TEXTURE = False                # texture procedurali leggere su pietra, intonaco, tetti, legno, terreno, fogliame
+VELOCITA_PERSONE = 2.0        # 1.0 = passo normale (1,05-1,35 m/s); 1.5 = piu' veloci del 50%; 2.0 = il doppio
+VELOCITA_ANIMALI = 2.0        # come sopra per gli animali; le zampe si adeguano al passo
+SOSTE_ANIMALI = 1.0           # durata delle soste per brucare o beccare: 0.5 = la meta', 1.0 = come prima
+# --- registrazione a schermo in modalita' cammina
+MODALITA_SCHERMO = True       # vista in Rendered pulita in tutte le finestre 3D
+RIQUADRI = False              # divide terreno e alberi in riquadri (solo se serve piu' fluidita')
+PREFERENZE_CAMMINATA = False  # True cambia le preferenze di Blender (valgono per tutti i progetti);
+                              # rimettendolo a False lo script ripristina i valori salvati

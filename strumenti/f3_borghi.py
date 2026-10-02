@@ -220,7 +220,7 @@ def porto(m, T, rng):
     e1 = B.via([(197.5, 15.0), (190.0, 12.5), (183.0, 10.5), (179.0, 9.5)], 2.6, nome='della Costa', gmax=0.08)
     e2 = B.via([(198.5, 25.5), (190.0, 23.5), (181.0, 20.5), (173.0, 16.5), (165.0, 13.0)], 2.6, nome='Alta', gmax=0.08)
     e3 = B.via([(199.0, 36.5), (190.0, 34.5), (181.0, 32.5), (172.0, 32.5), (165.0, 28.0)], 2.4, nome='del Belvedere', gmax=0.08)
-    c1 = B.via([(203.4, 7.5), (200.5, 11.5), (197.5, 15.0)], 2.2, nome='scalinata della Costa', liscia=0)
+    c1 = B.via([(203.5, 9.6), (200.0, 12.6), (197.5, 15.0)], 2.2, nome='scalinata della Costa', liscia=0)
     c2 = B.via([(193.0, 13.2), (192.0, 18.5), (191.0, 23.8)], 2.2, nome='scalinata Alta', liscia=0)
     c3 = B.via([(186.5, 22.2), (186.0, 28.0), (185.5, 33.7)], 2.2, nome='scalinata del Belvedere', liscia=0)
     c4 = B.via([(179.0, 9.5), (177.0, 18.6)], 2.2, nome='scalinata di ponente (bassa)', liscia=0)
@@ -248,6 +248,12 @@ def run(m):
     rng = np.random.default_rng(2026)
     T = modelli(m)
     log('modelli di casa (copie degli edifici esistenti, con i loro dettagli): %d' % len(T))
-    altopiano(m, T, rng)
-    porto(m, T, rng)
+    B1 = altopiano(m, T, rng)
+    B2 = porto(m, T, rng)
+    # impronte esatte delle case (per i controlli finali)
+    case = []
+    for nome, B in (('Borgo_Altopiano', B1), ('Borgo_Porto', B2)):
+        for c in B.case:
+            case.append(dict(obj=nome, corpo=list(c['corpo'].exterior.coords), tutto=list(c['tutto'].exterior.coords), y=c['y'], alt=c['alt'], via=c['via']))
+    pickle.dump(case, open('fase3/case_borghi.pkl', 'wb'))
     return LOG

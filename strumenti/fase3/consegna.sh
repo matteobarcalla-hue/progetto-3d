@@ -1,0 +1,12 @@
+set -e
+# da eseguire nella cartella di lavoro (tools/, fase3/, venv/ con il modulo bpy)
+venv/bin/python tools/kit_dati6.py fase3/finale.obj.state.pkl fase3/kit_v6.py > fase3/kit6.log 2>&1
+venv/bin/python fase3/verifica_kit.py fase3/kit_v6.py > fase3/verkit.log 2>&1
+venv/bin/python fase3/verifica_camere.py > fase3/vercam.log 2>&1
+echo kit ok
+venv/bin/python tools/aggiorna_blend.py "fase3/castello sul mare.blend" fase3/finale.obj.state.pkl fase3/kit_v6.py "fase3/castello sul mare - fase 3.blend" > fase3/agg_blend.log 2>&1
+venv/bin/python fase3/verifica_blend.py > fase3/verblend.log 2>&1
+echo blend ok
+venv/bin/python tools/render_views.py fase3/finale.obj fase3/fin2/dopo 01_dallalto=ortho:-92,-50,760,1200,1600 02_borgo_altopiano=persp:60,95,-280,140,40,-200,30,1600,1000 03_borgo_porto=persp:262,30,-70,195,6,0,32,1600,1000 04_pale_dal_forte=persp:-60,170,150,-400,170,180,30,1600,1000 05_solco=persp:30,30,-80,10,2,-107,30,1600,1000 06_bosco_dal_sentiero=persp:-45,22.5,95,-60,22,115,55,1600,1000 07_biomi=persp:120,160,-150,-300,110,130,26,1600,1000 08_sentiero_pale=persp:-292,124,192,-410,172,170,28,1600,1000  > fase3/r_dopo.log 2>&1
+venv/bin/python tools/render_views.py fase3/f3_base.obj fase3/fin2/prima 04_pale_dal_forte=persp:-60,170,150,-400,170,180,30,1600,1000 05_solco=persp:30,30,-80,10,2,-107,30,1600,1000 07_biomi=persp:120,160,-150,-300,110,130,26,1600,1000 08_sentiero_pale=persp:-292,124,192,-410,172,170,28,1600,1000  > fase3/r_prima.log 2>&1
+echo render ok
